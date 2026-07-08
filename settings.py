@@ -15,3 +15,5 @@ METEOR_SPAWN_TIME = 1200
 
 # JOGO
 WIN_TIME = 30
+
+GAME_TIME = 30  # segundos

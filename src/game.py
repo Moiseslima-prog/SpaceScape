@@ -1,9 +1,13 @@
 import pygame
 
-from settings import WIDTH, HEIGHT, TITLE, FPS
+from settings import WIDTH, HEIGHT, TITLE, FPS, GAME_TIME
 from src.player import Player
 from src.game_state import GameState
 from src.asset_manager import AssetManager
+from src.meteor_manager import MeteorManager
+from src.collision_manager import CollisionManager
+from src.hud import HUD
+
 
 class Game:
 
@@ -11,30 +15,33 @@ class Game:
 
         pygame.init()
 
-        AssetManager.load_images()
+        self.hud = HUD()
+
+        self.start_time = pygame.time.get_ticks()
 
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption(TITLE)
+
+        AssetManager.load_images()
 
         self.clock = pygame.time.Clock()
 
         self.running = True
 
-        # Estados do jogo
-        self.state = GameState.MENU
+        self.state = GameState.PLAYING
 
-        # Grupos de sprites
         self.all_sprites = pygame.sprite.Group()
         self.meteors = pygame.sprite.Group()
 
-        # Sprite temporário da nave
-        player_surface = pygame.Surface((60, 60))
-        player_surface.fill((0, 120, 255))
+        self.meteor_manager = MeteorManager(
+            self.all_sprites,
+            self.meteors
+        )
 
         self.player = Player(
-            player_surface,
-            WIDTH // 2 - 30,
-            HEIGHT - 90
+            AssetManager.player,
+            WIDTH // 2 - AssetManager.player.get_width() // 2,
+            HEIGHT - AssetManager.player.get_height() - 20
         )
 
         self.all_sprites.add(self.player)
@@ -46,21 +53,60 @@ class Game:
             if event.type == pygame.QUIT:
                 self.running = False
 
+            if event.type == pygame.KEYDOWN:
+
+                if event.key == pygame.K_RETURN:
+
+                    if self.state in (
+                            GameState.GAME_OVER,
+                            GameState.VICTORY
+                    ):
+                        self.reset()
+
     def update(self):
+
+        if self.state != GameState.PLAYING:
+            return
+
         self.all_sprites.update()
+
+        self.meteor_manager.update()
+
+        if CollisionManager.player_hit(self.player, self.meteors):
+            self.state = GameState.GAME_OVER
+
+        self.check_win()
 
     def draw(self):
 
-        self.screen.fill((20, 20, 35))
+        self.screen.blit(
+            AssetManager.background,
+            (0, 0)
+        )
 
         self.all_sprites.draw(self.screen)
 
+        self.hud.draw(
+            self.screen,
+            self.state,
+            self.start_time
+        )
+
         pygame.display.flip()
+
+    def check_win(self):
+
+        if self.state != GameState.PLAYING:
+            return
+
+        elapsed = (pygame.time.get_ticks() - self.start_time) / 1000
+
+        if elapsed >= GAME_TIME:
+            self.state = GameState.VICTORY
 
     def run(self):
 
         while self.running:
-
             self.clock.tick(FPS)
 
             self.events()
@@ -70,3 +116,25 @@ class Game:
             self.draw()
 
         pygame.quit()
+
+    def reset(self):
+
+        self.all_sprites.empty()
+        self.meteors.empty()
+
+        self.player = Player(
+            AssetManager.player,
+            WIDTH // 2 - AssetManager.player.get_width() // 2,
+            HEIGHT - AssetManager.player.get_height() - 20
+        )
+
+        self.all_sprites.add(self.player)
+
+        self.meteor_manager = MeteorManager(
+            self.all_sprites,
+            self.meteors
+        )
+
+        self.start_time = pygame.time.get_ticks()
+
+        self.state = GameState.PLAYING
