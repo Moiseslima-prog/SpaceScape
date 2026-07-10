@@ -16,8 +16,7 @@ class Game:
 
         pygame.init()
 
-
-
+        self.score = 0
         self.hud = HUD()
         self.menu = Menu()
 
@@ -37,6 +36,8 @@ class Game:
         self.all_sprites = pygame.sprite.Group()
         self.meteors = pygame.sprite.Group()
         self.explosions = pygame.sprite.Group()
+
+
 
         self.meteor_manager = MeteorManager(
             self.all_sprites,
@@ -75,6 +76,12 @@ class Game:
         if self.state == GameState.PLAYING:
 
             self.all_sprites.update()
+
+            elapsed = (
+                              pygame.time.get_ticks() - self.start_time
+                      ) / 1000
+
+            self.meteor_manager.update_difficulty(elapsed)
 
             self.meteor_manager.update()
 
@@ -173,5 +180,5 @@ class Game:
         )
 
         self.start_time = pygame.time.get_ticks()
-
+        self.score = 0
         self.state = GameState.PLAYING
