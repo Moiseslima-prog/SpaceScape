@@ -8,10 +8,17 @@ class HUD:
 
     def __init__(self):
 
-        self.font = pygame.font.SysFont("Arial", 30)
-        self.big_font = pygame.font.SysFont("Arial", 60)
+        self.font = pygame.font.Font(
+            "assets/fonts/PressStart2P-Regular.ttf",
+            18
+        )
 
-    def draw(self, screen, state, start_time):
+        self.big_font = pygame.font.Font(
+            "assets/fonts/PressStart2P-Regular.ttf",
+            42
+        )
+
+    def draw(self, screen, state, start_time, score):
 
         if state == GameState.PLAYING:
 
@@ -27,6 +34,14 @@ class HUD:
 
             screen.blit(text, (20, 20))
 
+            score_text = self.font.render(
+                f"Pontos: {score}",
+                True,
+                (255, 255, 255)
+            )
+
+            screen.blit(score_text, (20, 60))
+
 
         elif state == GameState.GAME_OVER:
 
@@ -40,13 +55,23 @@ class HUD:
 
             )
 
-            rect = text.get_rect(center=(500, 300))
+            rect = text.get_rect(center=(500, 250))
 
             screen.blit(text, rect)
 
+            score_text = self.font.render(
+                f"Pontuação: {score}",
+                True,
+                (255, 255, 0)
+            )
+
+            score_rect = score_text.get_rect(center=(500, 500))
+
+            screen.blit(score_text, score_rect)
+
             info = self.font.render(
 
-                "Pressione ENTER para jogar novamente",
+                "ENTER - Jogar novamente",
 
                 True,
 
@@ -58,12 +83,22 @@ class HUD:
 
             screen.blit(info, info_rect)
 
+            menu = self.font.render(
+                "ESC - Voltar ao menu inicial",
+                True,
+                (255, 255, 255)
+            )
+
+            menu_rect = menu.get_rect(center=(500, 420))
+
+            screen.blit(menu, menu_rect)
+
 
         elif state == GameState.VICTORY:
 
             text = self.big_font.render(
 
-                "VOCÊ VENCEU!",
+                "VOCÊ VENCEU",
 
                 True,
 
@@ -71,13 +106,23 @@ class HUD:
 
             )
 
-            rect = text.get_rect(center=(500, 300))
+            rect = text.get_rect(center=(500, 250))
 
             screen.blit(text, rect)
 
+            score_text = self.font.render(
+                f"Pontuação: {score}",
+                True,
+                (255, 255, 0)
+            )
+
+            score_rect = score_text.get_rect(center=(500, 500))
+
+            screen.blit(score_text, score_rect)
+
             info = self.font.render(
 
-                "Pressione ENTER para jogar novamente",
+                "ENTER - Jogar novamente",
 
                 True,
 
@@ -88,3 +133,13 @@ class HUD:
             info_rect = info.get_rect(center=(500, 360))
 
             screen.blit(info, info_rect)
+
+            menu = self.font.render(
+                "ESC - Voltar ao menu inicial",
+                True,
+                (255, 255, 255)
+            )
+
+            menu_rect = menu.get_rect(center=(500, 420))
+
+            screen.blit(menu, menu_rect)

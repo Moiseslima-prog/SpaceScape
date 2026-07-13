@@ -15,9 +15,14 @@ class Meteor(GameObject):
 
         self.speed = speed
 
+        # Evita contabilizar o mesmo meteoro mais de uma vez
+        self.counted = False
+
     def update(self):
 
         self.rect.y += self.speed
 
         if self.rect.top > HEIGHT:
-            self.kill()
+            return True
+
+        return False

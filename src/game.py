@@ -10,22 +10,18 @@ from src.hud import HUD
 from src.menu import Menu
 from src.explosion import Explosion
 
+
 class Game:
 
     def __init__(self):
 
         pygame.init()
-
-        self.score = 0
-        self.hud = HUD()
-        self.menu = Menu()
-
-        self.start_time = pygame.time.get_ticks()
+        pygame.mixer.init()
 
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption(TITLE)
 
-        AssetManager.load_images()
+        AssetManager.load_assets()
 
         self.clock = pygame.time.Clock()
 
@@ -33,18 +29,31 @@ class Game:
 
         self.state = GameState.MENU
 
+        self.score = 0
+
+        self.start_time = pygame.time.get_ticks()
+
+        self.hud = HUD()
+        self.menu = Menu()
+
         self.all_sprites = pygame.sprite.Group()
         self.meteors = pygame.sprite.Group()
         self.explosions = pygame.sprite.Group()
 
-
+        self.player = None
 
         self.meteor_manager = MeteorManager(
             self.all_sprites,
             self.meteors
         )
 
-        self.player = None
+        pygame.mixer.music.load(
+            AssetManager.menu_music
+        )
+
+        pygame.mixer.music.set_volume(0.35)
+
+        pygame.mixer.music.play(-1)
 
     def events(self):
 
@@ -53,19 +62,25 @@ class Game:
             if event.type == pygame.QUIT:
                 self.running = False
 
-            if event.type == pygame.KEYDOWN:
+            elif event.type == pygame.KEYDOWN:
+
+                if event.key == pygame.K_ESCAPE:
+
+                    if self.state in (
+                            GameState.GAME_OVER,
+                            GameState.VICTORY
+                    ):
+                        self.back_to_menu()
 
                 if event.key == pygame.K_RETURN:
 
                     if self.state == GameState.MENU:
-
                         self.reset()
 
                     elif self.state in (
                             GameState.GAME_OVER,
                             GameState.VICTORY
                     ):
-
                         self.reset()
 
     def update(self):
@@ -78,28 +93,41 @@ class Game:
             self.all_sprites.update()
 
             elapsed = (
-                              pygame.time.get_ticks() - self.start_time
-                      ) / 1000
+                pygame.time.get_ticks() - self.start_time
+            ) / 1000
 
             self.meteor_manager.update_difficulty(elapsed)
-
             self.meteor_manager.update()
 
-            if CollisionManager.player_hit(
+            # Pontuação
+            for meteor in self.meteors:
+
+                if meteor.rect.top > HEIGHT and not meteor.counted:
+
+                    meteor.counted = True
+                    self.score += 10
+
+            # Colisão
+            if (
+                self.player is not None
+                and CollisionManager.player_hit(
                     self.player,
                     self.meteors
+                )
             ):
+
+                pygame.mixer.music.stop()
+                AssetManager.explosion_sound.play()
+
                 explosion = Explosion(
                     AssetManager.explosion,
                     self.player.rect.center
                 )
 
                 self.explosions.add(explosion)
-
                 self.all_sprites.add(explosion)
 
                 self.player.kill()
-
                 self.player = None
 
                 self.explosion_start = pygame.time.get_ticks()
@@ -108,12 +136,29 @@ class Game:
 
             self.check_win()
 
+
         elif self.state == GameState.EXPLODING:
 
             self.explosions.update()
 
-            if pygame.time.get_ticks() - self.explosion_start > 700:
+            if (
+
+                    pygame.time.get_ticks()
+
+                    - self.explosion_start
+
+                    >= 700
+
+            ):
                 self.state = GameState.GAME_OVER
+
+                pygame.mixer.music.load(
+
+                    AssetManager.game_over_music
+
+                )
+
+                pygame.mixer.music.play()
 
     def draw(self):
 
@@ -133,7 +178,8 @@ class Game:
             self.hud.draw(
                 self.screen,
                 self.state,
-                self.start_time
+                self.start_time,
+                self.score
             )
 
         pygame.display.flip()
@@ -143,28 +189,34 @@ class Game:
         if self.state != GameState.PLAYING:
             return
 
-        elapsed = (pygame.time.get_ticks() - self.start_time) / 1000
+        elapsed = (
+                          pygame.time.get_ticks() - self.start_time
+                  ) / 1000
 
         if elapsed >= GAME_TIME:
+            pygame.mixer.music.stop()
+
+            pygame.mixer.music.load(
+                AssetManager.victory_music
+            )
+
+            pygame.mixer.music.play()
+
             self.state = GameState.VICTORY
-
-    def run(self):
-
-        while self.running:
-            self.clock.tick(FPS)
-
-            self.events()
-
-            self.update()
-
-            self.draw()
-
-        pygame.quit()
 
     def reset(self):
 
+        pygame.mixer.music.stop()
+
+        pygame.mixer.music.load(
+            AssetManager.gameplay_music
+        )
+
+        pygame.mixer.music.play(-1)
+
         self.all_sprites.empty()
         self.meteors.empty()
+        self.explosions.empty()
 
         self.player = Player(
             AssetManager.player,
@@ -180,5 +232,42 @@ class Game:
         )
 
         self.start_time = pygame.time.get_ticks()
+
         self.score = 0
+
         self.state = GameState.PLAYING
+
+    def back_to_menu(self):
+
+        self.all_sprites.empty()
+        self.meteors.empty()
+        self.explosions.empty()
+
+        self.player = None
+
+        self.score = 0
+
+        self.state = GameState.MENU
+
+        pygame.mixer.music.stop()
+
+        pygame.mixer.music.load(
+            AssetManager.menu_music
+        )
+
+        pygame.mixer.music.play(-1)
+
+    def run(self):
+
+        while self.running:
+
+            self.clock.tick(FPS)
+
+            self.events()
+
+            self.update()
+
+            self.draw()
+
+        pygame.mixer.music.stop()
+        pygame.quit()
